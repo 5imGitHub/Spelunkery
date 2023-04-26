@@ -7,19 +7,25 @@ import com.ordana.spelunkery.features.util.StoneEntry;
 import com.ordana.spelunkery.features.util.StonePattern;
 import net.mehvahdjukaar.moonlight.api.misc.RegSupplier;
 import net.mehvahdjukaar.moonlight.api.platform.RegHelper;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
 import net.minecraft.core.Registry;
+import net.minecraft.data.worldgen.features.CaveFeatures;
 import net.minecraft.data.worldgen.placement.PlacementUtils;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.BiomeTags;
 import net.minecraft.tags.BlockTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.util.random.SimpleWeightedRandomList;
 import net.minecraft.util.valueproviders.*;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.CaveVines;
 import net.minecraft.world.level.block.HugeMushroomBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.GenerationStep;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 import net.minecraft.world.level.levelgen.feature.Feature;
+import net.minecraft.world.level.levelgen.feature.RandomSelectorFeature;
 import net.minecraft.world.level.levelgen.feature.configurations.*;
 import net.minecraft.world.level.levelgen.feature.featuresize.TwoLayersFeatureSize;
 import net.minecraft.world.level.levelgen.feature.foliageplacers.AcaciaFoliagePlacer;
@@ -28,50 +34,18 @@ import net.minecraft.world.level.levelgen.feature.stateproviders.WeightedStatePr
 import net.minecraft.world.level.levelgen.feature.trunkplacers.ForkingTrunkPlacer;
 import net.minecraft.world.level.levelgen.placement.CaveSurface;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
+import net.minecraft.world.level.levelgen.placement.PlacementModifier;
 
 import java.util.List;
 import java.util.function.Supplier;
 
 public class ModFeatures {
 
-    public static final RegSupplier<ConfiguredFeature<VegetationPatchConfiguration, Feature<VegetationPatchConfiguration>>> SPORE_MOSS_PATCH_BONEMEAL =
-            RegHelper.registerConfiguredFeature(Spelunkery.res("spore_moss_patch_bonemeal"), () -> Feature.VEGETATION_PATCH,
-                    () -> new VegetationPatchConfiguration(
-                            (BlockTags.MOSS_REPLACEABLE),
-                            BlockStateProvider.simple(Blocks.MOSS_BLOCK),
-                            PlacementUtils.inlinePlaced(Feature.SIMPLE_BLOCK, new SimpleBlockConfiguration(
-                                    new WeightedStateProvider(SimpleWeightedRandomList.<BlockState>builder()
-                                            .add(Blocks.FLOWERING_AZALEA.defaultBlockState(), 4)
-                                            .add(Blocks.AZALEA.defaultBlockState(), 7)
-                                            .add(Blocks.MOSS_CARPET.defaultBlockState(), 25)
-                                            .add(ModBlocks.SPOROPHYTE.get().defaultBlockState(), 50)
-                                            .add(ModBlocks.TALL_SPOROPHYTE.get().defaultBlockState(), 10)))),
-                            CaveSurface.FLOOR, ConstantInt.of(1), 0.0f, 5, 0.6f,
-                            UniformInt.of(1, 2), 0.75f));
-
-    public static final RegSupplier<ConfiguredFeature<HugeMushroomFeatureConfiguration, Feature<HugeMushroomFeatureConfiguration>>> HUGE_INKCAP_MUSHROOM =
-            RegHelper.registerConfiguredFeature(Spelunkery.res("huge_inkcap_mushroom_bonemeal"), () -> Feature.HUGE_RED_MUSHROOM,
-                    () -> new HugeMushroomFeatureConfiguration(
-                            BlockStateProvider.simple(ModBlocks.INKCAP_MUSHROOM_BLOCK.get().defaultBlockState().setValue(HugeMushroomBlock.DOWN, false)),
-                            BlockStateProvider.simple(Blocks.MUSHROOM_STEM.defaultBlockState().setValue(HugeMushroomBlock.UP, false).setValue(HugeMushroomBlock.DOWN, false)), 1));
-
-    public static final RegSupplier<ConfiguredFeature<HugeMushroomFeatureConfiguration, Feature<HugeMushroomFeatureConfiguration>>> HUGE_WHITE_INKCAP_MUSHROOM =
-            RegHelper.registerConfiguredFeature(Spelunkery.res("huge_white_inkcap_mushroom_bonemeal"), () -> Feature.HUGE_RED_MUSHROOM,
-                    () -> new HugeMushroomFeatureConfiguration(
-                            BlockStateProvider.simple(ModBlocks.WHITE_INKCAP_MUSHROOM_BLOCK.get().defaultBlockState().setValue(HugeMushroomBlock.DOWN, false)),
-                            BlockStateProvider.simple(Blocks.MUSHROOM_STEM.defaultBlockState().setValue(HugeMushroomBlock.UP, false).setValue(HugeMushroomBlock.DOWN, false)), 1));
-
-
-    public static final RegSupplier<ConfiguredFeature<TreeConfiguration, Feature<TreeConfiguration>>> HUGE_PORTABELLA =
-            RegHelper.registerConfiguredFeature(Spelunkery.res("huge_portabella_bonemeal"), () -> Feature.TREE,
-                    () -> (new TreeConfiguration.TreeConfigurationBuilder(
-                            BlockStateProvider.simple(Blocks.MUSHROOM_STEM.defaultBlockState().setValue(HugeMushroomBlock.DOWN, false)),
-                            new ForkingTrunkPlacer(5, 2, 2),
-                            BlockStateProvider.simple(ModBlocks.PORTABELLA_BLOCK.get().defaultBlockState().setValue(HugeMushroomBlock.DOWN, false)),
-                            new AcaciaFoliagePlacer(ConstantInt.of(2), ConstantInt.of(0)),
-                            new TwoLayersFeatureSize(1, 0, 2))).ignoreVines().build());
-
     //features
+    public static final Supplier<Feature<HugeConkFungusFeatureConfig>> HUGE_CONK_FEATURE = RegHelper.registerFeature(
+            Spelunkery.res("huge_conk"), () ->
+                    new HugeConkFungusFeature(HugeConkFungusFeatureConfig.CODEC));
+
     public static final Supplier<Feature<WallMushroomFeatureConfig>> WALL_MUSHROOM_FEATURE = RegHelper.registerFeature(
             Spelunkery.res("wall_mushroom"), () ->
                     new WallMushroomFeature(WallMushroomFeatureConfig.CODEC));
@@ -88,6 +62,21 @@ public class ModFeatures {
             Spelunkery.res("sculk_patch"), () ->
                     new SculkGrowthFeature(NoneFeatureConfiguration.CODEC));
 
+
+    public static final RegSupplier<ConfiguredFeature<VegetationPatchConfiguration, Feature<VegetationPatchConfiguration>>> SPORE_MOSS_PATCH_BONEMEAL =
+            RegHelper.registerConfiguredFeature(Spelunkery.res("spore_moss_patch_bonemeal"), () -> Feature.VEGETATION_PATCH,
+                    () -> new VegetationPatchConfiguration(
+                            (BlockTags.MOSS_REPLACEABLE),
+                            BlockStateProvider.simple(Blocks.MOSS_BLOCK),
+                            PlacementUtils.inlinePlaced(Feature.SIMPLE_BLOCK, new SimpleBlockConfiguration(
+                                    new WeightedStateProvider(SimpleWeightedRandomList.<BlockState>builder()
+                                            .add(Blocks.FLOWERING_AZALEA.defaultBlockState(), 4)
+                                            .add(Blocks.AZALEA.defaultBlockState(), 7)
+                                            .add(Blocks.MOSS_CARPET.defaultBlockState(), 25)
+                                            .add(ModBlocks.SPOROPHYTE.get().defaultBlockState(), 50)
+                                            .add(ModBlocks.TALL_SPOROPHYTE.get().defaultBlockState(), 10)))),
+                            CaveSurface.FLOOR, ConstantInt.of(1), 0.0f, 5, 0.6f,
+                            UniformInt.of(1, 2), 0.75f));
 
     public static void init() {
 
